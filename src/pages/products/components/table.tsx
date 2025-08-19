@@ -1,0 +1,147 @@
+import {
+	Table,
+	TableBody,
+	TableCell,
+	TableHead,
+	TableHeader,
+	TableRow,
+} from '@/components/ui/table';
+import { EyeIcon, PencilIcon, LockIcon, UnlockIcon } from 'lucide-react';
+
+import { Button } from '@/components/ui/button';
+import { useLockProduct, useUnlockProduct } from '@/hooks/products/useProduct';
+import { formatPrice } from '@/lib/format-currency';
+import type { Product } from '@/types/product.type';
+import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
+
+interface TableProductProps {
+	products: Product[];
+}
+
+export const TableProduct = ({ products }: TableProductProps) => {
+	const navigate = useNavigate();
+	const { mutate: lockProduct, isPending: isLocking } = useLockProduct();
+	const { mutate: unlockProduct, isPending: isUnlocking } = useUnlockProduct();
+	const [processingId, setProcessingId] = useState<string | null>(null);
+
+	const handleViewDetail = (productId: string) => {
+		navigate(`/products/detail/${productId}`);
+	};
+
+	const handleEditProduct = (productId: string) => {
+		navigate(`/products/edit/${productId}`);
+	};
+
+	const handleToggleHidden = (product: Product) => {
+		setProcessingId(product.id);
+		const action = product.isHidden ? unlockProduct : lockProduct;
+		action(product.id, {
+			onSettled: () => {
+				setProcessingId(null);
+			},
+		});
+	};
+
+	return (
+		<div className="overflow-x-auto">
+			<Table>
+				<TableHeader>
+					<TableRow>
+						<TableHead className="w-[100px]">ID</TableHead>
+						<TableHead>Tên sản phẩm</TableHead>
+						<TableHead>Danh mục</TableHead>
+						<TableHead>Giá</TableHead>
+						<TableHead>Trọng lượng</TableHead>
+						<TableHead>Tồn kho</TableHead>
+						<TableHead>Chất liệu</TableHead>
+						<TableHead className="text-right">Thao tác</TableHead>
+					</TableRow>
+				</TableHeader>
+				<TableBody>
+					{products.map((product: Product, index: number) => (
+						<TableRow key={product.id}>
+							<TableCell className="font-mono text-xs">#{index + 1}</TableCell>
+							<TableCell>
+								<div className="flex items-center gap-2">
+									<img
+										src={product.images[0]}
+										alt={product.productName}
+										className="w-20 h-20 rounded-md object-cover flex-shrink-0 border border-gray-300"
+									/>
+									<div>
+										<div className="font-medium text-gray-900 truncate line-clamp-1 text-sm">
+											{product.productName.slice(0, 40) + '...'}
+										</div>
+										<div className="text-sm text-gray-500 truncate line-clamp-2">
+											{product.description.slice(0, 30) + '...'}
+										</div>
+									</div>
+								</div>
+							</TableCell>
+							<TableCell>
+								<span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+									{product.category?.categoryName}
+								</span>
+							</TableCell>
+							<TableCell className="font-medium">
+								{formatPrice(product.price)}
+							</TableCell>
+							<TableCell className="text-sm text-gray-600">
+								{product.weight}g
+							</TableCell>
+							<TableCell>
+								<span
+									className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+										product.stockQuantity <= 10
+											? 'bg-red-100 text-red-800'
+											: product.stockQuantity <= 50
+											? 'bg-yellow-100 text-yellow-800'
+											: 'bg-green-100 text-green-800'
+									}`}
+								>
+									{product.stockQuantity}
+								</span>
+							</TableCell>
+							<TableCell className="text-sm text-gray-600">
+								{product.material}
+							</TableCell>
+							<TableCell className="text-right">
+								<div className="flex items-center justify-end gap-2">
+									<Button
+										variant="outline"
+										size="sm"
+										onClick={() => handleViewDetail(product.id)}
+										className="text-blue-600 hover:text-blue-700 hover:bg-blue-50"
+									>
+										<EyeIcon className="w-4 h-4" />
+									</Button>
+									<Button
+										variant="outline"
+										size="sm"
+										onClick={() => handleEditProduct(product.id)}
+									>
+										<PencilIcon className="w-4 h-4" />
+									</Button>
+									<Button
+										variant="outline"
+										size="sm"
+										onClick={() => handleToggleHidden(product)}
+										className={product.isHidden ? 'text-green-600 hover:text-green-700 hover:bg-green-50' : 'text-yellow-600 hover:text-yellow-700 hover:bg-yellow-50'}
+										disabled={(isLocking || isUnlocking) && processingId === product.id}
+									>
+										{product.isHidden ? (
+											<UnlockIcon className="w-4 h-4" />
+										) : (
+											<LockIcon className="w-4 h-4" />
+										)}
+									</Button>
+								</div>
+							</TableCell>
+						</TableRow>
+					))}
+				</TableBody>
+			</Table>
+		</div>
+	);
+};
