@@ -1,8 +1,6 @@
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { 
 	Table, 
 	TableBody, 
@@ -11,100 +9,24 @@ import {
 	TableHeader, 
 	TableRow 
 } from '@/components/ui/table';
-import { 
-	AlertDialog,
-	AlertDialogAction,
-	AlertDialogCancel,
-	AlertDialogContent,
-	AlertDialogDescription,
-	AlertDialogFooter,
-	AlertDialogHeader,
-	AlertDialogTitle,
-	AlertDialogTrigger,
-} from '@/components/ui/alert-dialog';
+// Removed AlertDialog imports as they are no longer used
 import { 
 	Heart, 
-	Trash2, 
-	Search,
-	Filter,
 	Eye,
 	Users,
 	Package,
 	TrendingUp,
-	Star
+	Star,
+	ChevronLeft,
+	ChevronRight,
+	AlertCircle,
+	RefreshCw
 } from 'lucide-react';
+import { useCustomerFavorites, useFavoriteStats, useRemoveFavorite } from '@/hooks/useFavorites';
+import { useCategories } from '@/hooks/categories/useCategory';
 
 // Mock data for favorites - replace with actual API calls
-const mockFavorites = [
-	{
-		_id: '1',
-		productId: { 
-			_id: 'p1',
-			name: 'Nhẫn kim cương', 
-			images: ['https://via.placeholder.com/50'],
-			price: 15000000,
-			categoryId: { name: 'Nhẫn' }
-		},
-		customerId: { 
-			_id: 'c1',
-			fullName: 'Nguyễn Văn A', 
-			email: 'nguyenvana@email.com',
-			phone: '0123456789'
-		},
-		addedAt: '2024-01-15T10:30:00Z'
-	},
-	{
-		_id: '2',
-		productId: { 
-			_id: 'p2',
-			name: 'Dây chuyền vàng', 
-			images: ['https://via.placeholder.com/50'],
-			price: 8000000,
-			categoryId: { name: 'Dây chuyền' }
-		},
-		customerId: { 
-			_id: 'c2',
-			fullName: 'Trần Thị B', 
-			email: 'tranthib@email.com',
-			phone: '0987654321'
-		},
-		addedAt: '2024-01-14T15:20:00Z'
-	},
-	{
-		_id: '3',
-		productId: { 
-			_id: 'p3',
-			name: 'Bông tai ngọc trai', 
-			images: ['https://via.placeholder.com/50'],
-			price: 5000000,
-			categoryId: { name: 'Bông tai' }
-		},
-		customerId: { 
-			_id: 'c1',
-			fullName: 'Nguyễn Văn A', 
-			email: 'nguyenvana@email.com',
-			phone: '0123456789'
-		},
-		addedAt: '2024-01-13T09:15:00Z'
-	},
-	{
-		_id: '4',
-		productId: { 
-			_id: 'p1',
-			name: 'Nhẫn kim cương', 
-			images: ['https://via.placeholder.com/50'],
-			price: 15000000,
-			categoryId: { name: 'Nhẫn' }
-		},
-		customerId: { 
-			_id: 'c3',
-			fullName: 'Lê Văn C', 
-			email: 'levanc@email.com',
-			phone: '0555666777'
-		},
-		addedAt: '2024-01-12T14:45:00Z'
-	}
-];
+// const mockFavorites = [];
 
 export default function FavoritesPage() {
 	const [filters, setFilters] = useState({
@@ -113,41 +35,44 @@ export default function FavoritesPage() {
 		search: '',
 		customerId: '',
 		productId: '',
+		categoryId: 'all',
 		sortBy: 'addedAt',
 		sortOrder: 'desc' as 'asc' | 'desc'
 	});
 
-	const [favorites, setFavorites] = useState(mockFavorites);
+	// const [favorites, setFavorites] = useState(mockFavorites);
 
-	const handleFilterChange = (key: string, value: string) => {
-		setFilters(prev => ({
-			...prev,
-			[key]: value,
-			page: 1 // Reset to first page when filtering
-		}));
-	};
+	const { data: statsData, error: statsError, isLoading: statsLoading, refetch: refetchStats } = useFavoriteStats();
+	const { data: customerFavoritesData, isLoading: favoritesLoading, error: favoritesError, refetch: refetchFavorites } = useCustomerFavorites(
+		filters.customerId || undefined,
+		{
+			page: filters.page,
+			limit: filters.limit,
+			search: filters.search || undefined,
+			sortBy: filters.sortBy,
+			sortOrder: filters.sortOrder,
+		}
+	);
+	// const { data: categoriesData } = useCategories({ limit: 100 });
+	const removeMutation = useRemoveFavorite();
+
+	// const handleFilterChange = (key: string, value: string) => {
+	// 	setFilters(prev => ({
+	// 		...prev,
+	// 		[key]: value,
+	// 		page: 1 // Reset to first page when filtering
+	// 	}));
+	// };
 
 	const handleRemoveFavorite = (customerId: string, productId: string) => {
-		setFavorites(prev => prev.filter(fav => 
-			!(fav.customerId._id === customerId && fav.productId._id === productId)
-		));
+		removeMutation.mutate({ customerId, productId });
 	};
 
-	// Calculate statistics
-	const totalFavorites = favorites.length;
-	const uniqueCustomers = new Set(favorites.map(f => f.customerId._id)).size;
-	const uniqueProducts = new Set(favorites.map(f => f.productId._id)).size;
-	const totalValue = favorites.reduce((sum, fav) => sum + fav.productId.price, 0);
-
-	// Get most popular products
-	const productCounts = favorites.reduce((acc, fav) => {
-		const productId = fav.productId._id;
-		acc[productId] = (acc[productId] || 0) + 1;
-		return acc;
-	}, {} as Record<string, number>);
-
-	const mostPopularProduct = Object.entries(productCounts)
-		.sort(([,a], [,b]) => b - a)[0];
+	// Calculate statistics from API stats
+	const totalFavorites = statsData?.totalFavorites || 0;
+	const uniqueCustomers = statsData?.uniqueCustomers || 0;
+	const uniqueProducts = statsData?.uniqueProducts || 0;
+	const totalValue = statsData?.totalValue || 0;
 
 	const formatCurrency = (amount: number) => {
 		return new Intl.NumberFormat('vi-VN', {
@@ -160,45 +85,87 @@ export default function FavoritesPage() {
 		return new Date(dateString).toLocaleDateString('vi-VN');
 	};
 
-	// Filter favorites based on current filters
-	const filteredFavorites = favorites.filter(favorite => {
-		if (filters.search) {
-			const searchLower = filters.search.toLowerCase();
-			const matchesSearch = 
-				favorite.productId.name.toLowerCase().includes(searchLower) ||
-				favorite.customerId.fullName.toLowerCase().includes(searchLower) ||
-				favorite.customerId.email.toLowerCase().includes(searchLower);
-			if (!matchesSearch) return false;
-		}
+	const sortedFavorites = useMemo(() => {
+		const favorites = customerFavoritesData?.favorites || [];
+		let filtered = favorites.filter((favorite) => {
+			if (filters.productId && favorite.productId._id !== filters.productId) {
+				return false;
+			}
+			// Lọc theo danh mục
+			if (filters.categoryId !== 'all' && favorite.productId.categoryId?._id !== filters.categoryId) {
+				return false;
+			}
+			return true;
+		});
 
-		if (filters.customerId && favorite.customerId._id !== filters.customerId) {
-			return false;
-		}
+		// Sắp xếp theo tiêu chí
+		const sorted = [...filtered].sort((a, b) => {
+			switch (filters.sortBy) {
+				case 'favoriteCount':
+					// Sắp xếp theo số lượt yêu thích (sử dụng stats nếu có)
+					const aCount = statsData?.mostPopularProducts?.find(p => p.productId === a.productId._id)?.favoriteCount || 0;
+					const bCount = statsData?.mostPopularProducts?.find(p => p.productId === b.productId._id)?.favoriteCount || 0;
+					return filters.sortOrder === 'desc' ? bCount - aCount : aCount - bCount;
+				case 'price':
+					const aPrice = (a.productId as any).effectivePrice ?? (a.productId as any).discountedPrice ?? a.productId.price;
+					const bPrice = (b.productId as any).effectivePrice ?? (b.productId as any).discountedPrice ?? b.productId.price;
+					return filters.sortOrder === 'desc' ? bPrice - aPrice : aPrice - bPrice;
+				case 'addedAt':
+				default:
+					const aDate = new Date(a.addedAt).getTime();
+					const bDate = new Date(b.addedAt).getTime();
+					return filters.sortOrder === 'desc' ? bDate - aDate : aDate - bDate;
+			}
+		});
+		
+		return sorted;
+	}, [customerFavoritesData, filters.productId, filters.categoryId, filters.sortBy, filters.sortOrder, statsData]);
 
-		if (filters.productId && favorite.productId._id !== filters.productId) {
-			return false;
-		}
+	const handlePageChange = (newPage: number) => {
+		setFilters(prev => ({ ...prev, page: newPage }));
+	};
 
-		return true;
-	});
+	// Error handling component
+	const ErrorDisplay = ({ error, onRetry }: { error: any; onRetry: () => void }) => (
+		<div className="text-center py-8">
+			<AlertCircle className="mx-auto h-12 w-12 text-red-500 mb-4" />
+			<h3 className="text-lg font-semibold text-gray-900 mb-2">Đã xảy ra lỗi</h3>
+			<p className="text-gray-600 mb-4">
+				{error?.response?.status === 404 
+					? 'Không thể kết nối đến máy chủ API. Vui lòng kiểm tra xem máy chủ đã được khởi động chưa.'
+					: error?.response?.data?.message || error?.message || 'Có lỗi xảy ra khi tải dữ liệu'
+				}
+			</p>
+			<Button onClick={onRetry} className="flex items-center gap-2">
+				<RefreshCw className="h-4 w-4" />
+				Thử lại
+			</Button>
+		</div>
+	);
 
-	// Sort favorites
-	const sortedFavorites = [...filteredFavorites].sort((a, b) => {
-		const aDate = new Date(a.addedAt).getTime();
-		const bDate = new Date(b.addedAt).getTime();
-		return filters.sortOrder === 'desc' ? bDate - aDate : aDate - bDate;
-	});
+	// Loading component
+	const LoadingDisplay = () => (
+		<div className="text-center py-8">
+			<div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900 mx-auto mb-4"></div>
+			<p className="text-gray-500">Đang tải dữ liệu...</p>
+		</div>
+	);
 
 	return (
 		<div className="max-w-7xl mx-auto py-8 px-4 sm:px-6 lg:px-8">
-			{/* Header */}
-			<div className="mb-8">
-				<h1 className="text-3xl font-bold text-gray-900 mb-2">
-					Quản lý sản phẩm yêu thích
-				</h1>
-				<p className="text-gray-600">
-					Quản lý sản phẩm được khách hàng yêu thích
-				</p>
+			{/* Header đẹp hơn */}
+			<div className="mb-8 overflow-hidden rounded-xl border border-gray-200 bg-gradient-to-r from-pink-50 via-rose-50 to-orange-50">
+				<div className="flex items-center gap-4 p-6">
+					<div className="flex h-12 w-12 items-center justify-center rounded-full bg-rose-100">
+						<Heart className="h-6 w-6 text-rose-500" />
+					</div>
+					<div>
+						<h1 className="text-2xl font-bold text-gray-900">Quản lý sản phẩm yêu thích</h1>
+						<p className="text-sm text-gray-600">
+							Quản lý sản phẩm được khách hàng yêu thích
+						</p>
+					</div>
+				</div>
 			</div>
 
 			{/* Stats Cards */}
@@ -209,10 +176,21 @@ export default function FavoritesPage() {
 						<Heart className="h-4 w-4 text-muted-foreground" />
 					</CardHeader>
 					<CardContent>
-						<div className="text-2xl font-bold">{totalFavorites.toLocaleString()}</div>
-						<p className="text-xs text-muted-foreground">
-							Tất cả lượt yêu thích
-						</p>
+						{statsLoading ? (
+							<div className="animate-pulse">
+								<div className="h-8 bg-gray-200 rounded mb-2"></div>
+								<div className="h-4 bg-gray-200 rounded"></div>
+							</div>
+						) : statsError ? (
+							<div className="text-red-500 text-sm">Lỗi tải dữ liệu</div>
+						) : (
+							<>
+								<div className="text-2xl font-bold">{totalFavorites.toLocaleString()}</div>
+								<p className="text-xs text-muted-foreground">
+									Tất cả lượt yêu thích
+								</p>
+							</>
+						)}
 					</CardContent>
 				</Card>
 
@@ -222,10 +200,21 @@ export default function FavoritesPage() {
 						<Users className="h-4 w-4 text-muted-foreground" />
 					</CardHeader>
 					<CardContent>
-						<div className="text-2xl font-bold">{uniqueCustomers.toLocaleString()}</div>
-						<p className="text-xs text-muted-foreground">
-							Số khách hàng có yêu thích
-						</p>
+						{statsLoading ? (
+							<div className="animate-pulse">
+								<div className="h-8 bg-gray-200 rounded mb-2"></div>
+								<div className="h-4 bg-gray-200 rounded"></div>
+							</div>
+						) : statsError ? (
+							<div className="text-red-500 text-sm">Lỗi tải dữ liệu</div>
+						) : (
+							<>
+								<div className="text-2xl font-bold">{uniqueCustomers.toLocaleString()}</div>
+								<p className="text-xs text-muted-foreground">
+									Số khách hàng có yêu thích
+								</p>
+							</>
+						)}
 					</CardContent>
 				</Card>
 
@@ -235,10 +224,21 @@ export default function FavoritesPage() {
 						<Package className="h-4 w-4 text-muted-foreground" />
 					</CardHeader>
 					<CardContent>
-						<div className="text-2xl font-bold">{uniqueProducts.toLocaleString()}</div>
-						<p className="text-xs text-muted-foreground">
-							Số sản phẩm được yêu thích
-						</p>
+						{statsLoading ? (
+							<div className="animate-pulse">
+								<div className="h-8 bg-gray-200 rounded mb-2"></div>
+								<div className="h-4 bg-gray-200 rounded"></div>
+							</div>
+						) : statsError ? (
+							<div className="text-red-500 text-sm">Lỗi tải dữ liệu</div>
+						) : (
+							<>
+								<div className="text-2xl font-bold">{uniqueProducts.toLocaleString()}</div>
+								<p className="text-xs text-muted-foreground">
+									Số sản phẩm được yêu thích
+								</p>
+							</>
+						)}
 					</CardContent>
 				</Card>
 
@@ -248,81 +248,72 @@ export default function FavoritesPage() {
 						<TrendingUp className="h-4 w-4 text-muted-foreground" />
 					</CardHeader>
 					<CardContent>
-						<div className="text-2xl font-bold">{formatCurrency(totalValue)}</div>
-						<p className="text-xs text-muted-foreground">
-							Tổng giá trị sản phẩm yêu thích
-						</p>
+						{statsLoading ? (
+							<div className="animate-pulse">
+								<div className="h-8 bg-gray-200 rounded mb-2"></div>
+								<div className="h-4 bg-gray-200 rounded"></div>
+							</div>
+						) : statsError ? (
+							<div className="text-red-500 text-sm">Lỗi tải dữ liệu</div>
+						) : (
+							<>
+								<div className="text-2xl font-bold">{formatCurrency(totalValue)}</div>
+								<p className="text-xs text-muted-foreground">
+									Tổng giá trị sản phẩm yêu thích
+								</p>
+							</>
+						)}
 					</CardContent>
 				</Card>
 			</div>
 
-			{/* Popular Products Summary */}
-			<Card className="mb-8">
-				<CardHeader>
-					<CardTitle>Sản phẩm phổ biến</CardTitle>
-					<CardDescription>
-						Sản phẩm được yêu thích nhiều nhất
-					</CardDescription>
-				</CardHeader>
-				<CardContent>
-					{mostPopularProduct ? (
-						<div className="flex items-center gap-4">
-							<Star className="h-8 w-8 text-yellow-500" />
-							<div>
-								<div className="text-lg font-semibold">
-									{mostPopularProduct[0] === 'p1' ? 'Nhẫn kim cương' : 'Sản phẩm khác'}
-								</div>
-								<div className="text-sm text-gray-600">
-									Được yêu thích {mostPopularProduct[1]} lần
-								</div>
-							</div>
-						</div>
-					) : (
-						<div className="text-gray-500">Không có dữ liệu</div>
-					)}
-				</CardContent>
-			</Card>
+			{/* Error display for stats */}
+			{statsError && (
+				<Card className="mb-8">
+					<CardContent className="pt-6">
+						<ErrorDisplay error={statsError} onRetry={() => refetchStats()} />
+					</CardContent>
+				</Card>
+			)}
 
-			{/* Filters */}
-			<Card className="mb-6">
-				<CardHeader>
-					<CardTitle className="flex items-center gap-2">
-						<Filter className="h-5 w-5" />
-						Bộ lọc
-					</CardTitle>
-				</CardHeader>
-				<CardContent>
-					<div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-						<div className="relative">
-							<Search className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
-							<Input
-								placeholder="Tìm kiếm sản phẩm, khách hàng..."
-								value={filters.search}
-								onChange={(e) => handleFilterChange('search', e.target.value)}
-								className="pl-10"
-							/>
+			{/* Top được yêu thích nhiều */}
+			{statsData?.mostPopularProducts?.length ? (
+				<Card className="mb-8">
+					<CardHeader>
+						<CardTitle className="flex items-center gap-2">
+							<Star className="h-5 w-5 text-yellow-500" />
+							Sản phẩm được yêu thích nhiều nhất
+						</CardTitle>
+						<CardDescription>
+							Top sản phẩm có nhiều lượt yêu thích nhất
+						</CardDescription>
+					</CardHeader>
+					<CardContent>
+						<div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+							{statsData.mostPopularProducts.slice(0, 8).map((p) => (
+								<Card key={p.productId} className="border-gray-200 p-4">
+									<CardContent className="p-0">
+										<div className="flex items-center gap-3">
+											<div className="flex h-10 w-10 items-center justify-center rounded-full bg-rose-100">
+												<Heart className="h-5 w-5 text-rose-500" />
+											</div>
+											<div className="flex-1">
+												<div className="font-semibold text-sm line-clamp-2">{p.productName}</div>
+												<div className="text-xs text-gray-600">
+													{p.favoriteCount} lượt yêu thích
+												</div>
+												<div className="text-xs text-gray-500">
+													{formatCurrency(p.totalValue)}
+												</div>
+											</div>
+										</div>
+									</CardContent>
+								</Card>
+							))}
 						</div>
-						<Select value={filters.sortBy} onValueChange={(value) => handleFilterChange('sortBy', value)}>
-							<SelectTrigger>
-								<SelectValue placeholder="Sắp xếp theo" />
-							</SelectTrigger>
-							<SelectContent>
-								<SelectItem value="addedAt">Ngày yêu thích</SelectItem>
-								<SelectItem value="createdAt">Ngày tạo</SelectItem>
-							</SelectContent>
-						</Select>
-						<Select value={filters.sortOrder} onValueChange={(value) => handleFilterChange('sortOrder', value)}>
-							<SelectTrigger>
-								<SelectValue placeholder="Thứ tự" />
-							</SelectTrigger>
-							<SelectContent>
-								<SelectItem value="desc">Mới nhất</SelectItem>
-								<SelectItem value="asc">Cũ nhất</SelectItem>
-							</SelectContent>
-						</Select>
-					</div>
-				</CardContent>
-			</Card>
+					</CardContent>
+				</Card>
+			) : null}
 
 			{/* Favorites Table */}
 			<Card>
@@ -333,103 +324,145 @@ export default function FavoritesPage() {
 					</CardDescription>
 				</CardHeader>
 				<CardContent>
-					{sortedFavorites.length > 0 ? (
-						<div className="rounded-md border">
-							<Table>
-								<TableHeader>
-									<TableRow>
-										<TableHead>Sản phẩm</TableHead>
-										<TableHead>Khách hàng</TableHead>
-										<TableHead>Giá</TableHead>
-										<TableHead>Danh mục</TableHead>
-										<TableHead>Ngày yêu thích</TableHead>
-										<TableHead className="text-right">Thao tác</TableHead>
-									</TableRow>
-								</TableHeader>
-								<TableBody>
-									{sortedFavorites.map((favorite) => (
-										<TableRow key={favorite._id}>
-											<TableCell>
-												<div className="flex items-center gap-3">
-													{favorite.productId.images?.[0] && (
-														<img 
-															src={favorite.productId.images[0]} 
-															alt={favorite.productId.name}
-															className="w-12 h-12 object-cover rounded"
-														/>
-													)}
-													<div>
-														<div className="font-medium">{favorite.productId.name}</div>
-														<div className="text-sm text-gray-500">
-															ID: {favorite.productId._id}
+					{!filters.customerId ? (
+						<div className="text-center py-8">
+							<Heart className="mx-auto h-12 w-12 text-gray-400" />
+							<p className="mt-2 text-gray-500">Nhập Customer ID để xem danh sách yêu thích.</p>
+						</div>
+					) : favoritesError ? (
+						<ErrorDisplay error={favoritesError} onRetry={() => refetchFavorites()} />
+					) : favoritesLoading ? (
+						<LoadingDisplay />
+					) : sortedFavorites.length > 0 ? (
+						<>
+							{/* Stats */}
+							<div className="mb-6 flex items-center gap-3">
+								<div className="text-sm text-gray-600">
+									{customerFavoritesData?.total} sản phẩm yêu thích
+								</div>
+							</div>
+
+							<div className="rounded-md border">
+								<Table>
+									<TableHeader>
+										<TableRow>
+											<TableHead>Sản phẩm</TableHead>
+											<TableHead>Khách hàng</TableHead>
+											<TableHead>Giá</TableHead>
+											<TableHead>Danh mục</TableHead>
+											<TableHead>Ngày yêu thích</TableHead>
+											<TableHead className="text-right">Thao tác</TableHead>
+										</TableRow>
+									</TableHeader>
+									<TableBody>
+										{sortedFavorites.map((favorite) => (
+											<TableRow key={favorite.id}>
+												<TableCell>
+													<div className="flex items-center gap-3">
+														{favorite.productId.images?.[0] && (
+															<img 
+																src={favorite.productId.images[0]} 
+																alt={favorite.productId.productName}
+																className="w-12 h-12 object-cover rounded"
+																onError={(e) => {
+																	const target = e.target as HTMLImageElement;
+																	target.src = 'https://via.placeholder.com/300x300?text=No+Image';
+																}}
+															/>
+														)}
+														<div>
+															<div className="font-medium">{favorite.productId.productName}</div>
+															<div className="text-sm text-gray-500">
+																ID: {favorite.productId._id}
+															</div>
 														</div>
 													</div>
-												</div>
-											</TableCell>
-											<TableCell>
-												<div>
-													<div className="font-medium">{favorite.customerId.fullName}</div>
-													<div className="text-sm text-gray-500">{favorite.customerId.email}</div>
-													{favorite.customerId.phone && (
-														<div className="text-sm text-gray-500">{favorite.customerId.phone}</div>
-													)}
-												</div>
-											</TableCell>
-											<TableCell>
-												<div className="font-medium">
-													{formatCurrency(favorite.productId.price)}
-												</div>
-											</TableCell>
-											<TableCell>
-												{favorite.productId.categoryId ? (
-													<div className="text-sm">
-														{favorite.productId.categoryId.name}
+												</TableCell>
+												<TableCell>
+													<div>
+														<div className="font-medium">{favorite.customerId.fullName}</div>
+														<div className="text-sm text-gray-500">{favorite.customerId.email}</div>
+														{favorite.customerId.phone && (
+															<div className="text-sm text-gray-500">{favorite.customerId.phone}</div>
+														)}
 													</div>
-												) : (
-													<div className="text-sm text-gray-500">Không có danh mục</div>
-												)}
-											</TableCell>
-											<TableCell>
-												<div className="text-sm">
-													{formatDate(favorite.addedAt)}
-												</div>
-											</TableCell>
-											<TableCell className="text-right">
-												<div className="flex items-center gap-2 justify-end">
-													<Button variant="outline" size="sm">
-														<Eye className="h-4 w-4" />
-													</Button>
-													<AlertDialog>
-														<AlertDialogTrigger asChild>
-															<Button variant="outline" size="sm">
-																<Trash2 className="h-4 w-4" />
-															</Button>
-														</AlertDialogTrigger>
-														<AlertDialogContent>
-															<AlertDialogHeader>
-																<AlertDialogTitle>Xóa khỏi yêu thích</AlertDialogTitle>
-																<AlertDialogDescription>
-																	Bạn có chắc chắn muốn xóa sản phẩm này khỏi danh sách yêu thích của khách hàng? Hành động này không thể hoàn tác.
-																</AlertDialogDescription>
-															</AlertDialogHeader>
-															<AlertDialogFooter>
-																<AlertDialogCancel>Hủy</AlertDialogCancel>
-																<AlertDialogAction
-																	onClick={() => handleRemoveFavorite(favorite.customerId._id, favorite.productId._id)}
-																	className="bg-red-600 hover:bg-red-700"
-																>
-																	Xóa
-																</AlertDialogAction>
-															</AlertDialogFooter>
-														</AlertDialogContent>
-													</AlertDialog>
-												</div>
-											</TableCell>
-										</TableRow>
-									))}
-								</TableBody>
-							</Table>
-						</div>
+												</TableCell>
+												<TableCell>
+													<div className="font-medium">
+														{formatCurrency((favorite.productId as any).effectivePrice ?? (favorite.productId as any).discountedPrice ?? favorite.productId.price)}
+													</div>
+													{((favorite.productId as any).discountPercentage ?? 0) > 0 && (
+														<div className="text-sm text-gray-500">
+															<span className="line-through">
+																{formatCurrency(favorite.productId.price)}
+															</span>
+															<span className="ml-2 rounded bg-red-100 px-2 py-0.5 text-xs font-semibold text-red-600">
+																-{(favorite.productId as any).discountPercentage}%
+															</span>
+														</div>
+													)}
+												</TableCell>
+												<TableCell>
+													{favorite.productId.categoryId ? (
+														<div className="text-sm">
+															{(favorite.productId.categoryId as any).categoryName}
+														</div>
+													) : (
+														<div className="text-sm text-gray-500">Không có danh mục</div>
+													)}
+												</TableCell>
+												<TableCell>
+													<div className="text-sm">
+														{formatDate(favorite.addedAt)}
+													</div>
+												</TableCell>
+												<TableCell className="text-right">
+													<div className="flex items-center gap-2 justify-end">
+														<Button variant="outline" size="sm">
+															<Eye className="h-4 w-4" />
+														</Button>
+														<Button
+															variant="ghost"
+															size="sm"
+															onClick={() => handleRemoveFavorite(favorite.customerId._id, favorite.productId._id)}
+															aria-label="Bỏ yêu thích"
+															title="Bỏ yêu thích"
+														>
+															<Heart className="h-4 w-4 text-rose-500 fill-rose-500" />
+														</Button>
+													</div>
+												</TableCell>
+											</TableRow>
+										))}
+									</TableBody>
+								</Table>
+							</div>
+
+							{/* Phân trang */}
+							{customerFavoritesData && customerFavoritesData.totalPages > 1 && (
+								<div className="flex justify-center gap-2 mt-6">
+									<Button
+										variant="outline"
+										onClick={() => handlePageChange(filters.page - 1)}
+										disabled={filters.page === 1}
+									>
+										<ChevronLeft className="h-4 w-4 mr-1" />
+										Trước
+									</Button>
+									<span className="flex items-center px-4 text-sm text-gray-600">
+										Trang {filters.page} / {customerFavoritesData?.totalPages}
+									</span>
+									<Button
+										variant="outline"
+										onClick={() => handlePageChange(filters.page + 1)}
+										disabled={filters.page === (customerFavoritesData?.totalPages || 1)}
+									>
+										Sau
+										<ChevronRight className="h-4 w-4 ml-1" />
+									</Button>
+								</div>
+							)}
+						</>
 					) : (
 						<div className="text-center py-8">
 							<Heart className="mx-auto h-12 w-12 text-gray-400" />

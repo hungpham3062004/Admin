@@ -1,37 +1,56 @@
-import AdminDetailPage from './pages/manager/admins/detail/[adminId]/page';
-import AdminsPage from './pages/manager/admins/page';
-import CategoriesPage from './pages/categories/page';
-import ChangePasswordPage from './pages/manager/admins/change-password/[adminId]/page';
-import CommentsPage from './pages/comments/page';
-import CreateAdminPage from './pages/manager/admins/create/page';
-import CreateCategoryPage from './pages/categories/create/page';
-import CreateCustomerPage from './pages/manager/customers/create/page';
-import CreateProductPage from './pages/products/create/page';
-import CreateVoucherPage from './pages/vouchers/create/page';
-import CustomerDetailPage from './pages/manager/customers/detail/[customerId]/page';
-import CustomersPage from './pages/manager/customers/page';
-import EditAdminPage from './pages/manager/admins/edit/[adminId]/page';
-import EditCategoryPage from './pages/categories/edit/[categoryId]/page';
-import EditCustomerPage from './pages/manager/customers/edit/[customerId]/page';
-import EditProductPage from './pages/products/edit/[productId]/page';
-import FavoritesPage from './pages/favorites/page';
 import HomePage from './pages/home/page';
-import LoginPage from './pages/login/page';
-import OrderPage from './pages/orders/page';
-import ProductDetailPage from './pages/products/detail/[productId]/page';
 import ProductsPage from './pages/products/page';
-import RootLayout from './layouts/root-layout';
+import CreateProductPage from './pages/products/create/page';
+import EditProductPage from './pages/products/edit/[productId]/page';
+import ProductDetailPage from './pages/products/detail/[productId]/page';
+import CategoriesPage from './pages/categories/page';
+import CreateCategoryPage from './pages/categories/create/page';
+import EditCategoryPage from './pages/categories/edit/[categoryId]/page';
 import VouchersPage from './pages/vouchers/page';
+import CreateVoucherPage from './pages/vouchers/create/page';
+import CustomersPage from './pages/manager/customers/page';
+import CreateCustomerPage from './pages/manager/customers/create/page';
+import EditCustomerPage from './pages/manager/customers/edit/[customerId]/page';
+import CustomerDetailPage from './pages/manager/customers/detail/[customerId]/page';
+import AdminsPage from './pages/manager/admins/page';
+import CreateAdminPage from './pages/manager/admins/create/page';
+import EditAdminPage from './pages/manager/admins/edit/[adminId]/page';
+import AdminDetailPage from './pages/manager/admins/detail/[adminId]/page';
+import ChangePasswordPage from './pages/manager/admins/change-password/[adminId]/page';
+import OrderPage from './pages/orders/page';
+import CommentsPage from './pages/comments/page';
+import FavoritesPage from './pages/favorites/page';
+import LoginPage from './pages/login/page';
+import RootLayout from './layouts/root-layout';
+
 import { createBrowserRouter } from 'react-router-dom';
+
+// Error component for routes
+const RouteError = () => (
+	<div className="min-h-screen flex items-center justify-center bg-gray-50 px-4">
+		<div className="text-center">
+			<h1 className="text-2xl font-bold text-gray-900 mb-4">404 - Không tìm thấy trang</h1>
+			<p className="text-gray-600 mb-6">Trang bạn đang tìm kiếm không tồn tại hoặc đã bị di chuyển.</p>
+			<button 
+				onClick={() => window.history.back()} 
+				className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
+			>
+				Quay lại
+			</button>
+		</div>
+	</div>
+);
 
 export const router = createBrowserRouter([
 	{
 		path: '/login',
 		element: <LoginPage />,
+		errorElement: <RouteError />,
 	},
 	{
 		path: '/',
 		element: <RootLayout />,
+		errorElement: <RouteError />,
 		children: [
 			{
 				index: true,
