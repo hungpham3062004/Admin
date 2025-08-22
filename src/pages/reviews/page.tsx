@@ -23,8 +23,8 @@ import {
 	AlertDialogTitle,
 	AlertDialogTrigger,
 } from '@/components/ui/alert-dialog';
-import { useReviews, useUpdateReview, useDeleteReview, useReviewStats } from '@/hooks/reviews/useReviews';
-import { reviewHelpers } from '@/apis/reviews.api';
+import { useReviews, useApproveReview, useDeleteReview } from '@/hooks/useReviews';
+import type { Review } from '@/apis/reviews.api';
 import { 
 	MessageSquare, 
 	Star, 
@@ -41,15 +41,22 @@ export default function ReviewsPage() {
 		page: 1,
 		limit: 10,
 		search: '',
-		rating: '',
-		isApproved: '',
+		rating: 'all' as string,
+		isApproved: 'all' as string,
 		sortBy: 'reviewDate',
 		sortOrder: 'desc' as 'asc' | 'desc'
 	});
 
-	const { data: reviewsData, isLoading } = useReviews(filters);
-	const { data: reviewStats } = useReviewStats();
-	const updateReview = useUpdateReview();
+	const { data: reviewsData, isLoading } = useReviews({
+		page: filters.page,
+		limit: filters.limit,
+		rating: filters.rating !== 'all' ? parseInt(filters.rating) : undefined,
+		isApproved: filters.isApproved !== 'all' ? filters.isApproved === 'true' : undefined,
+		sortBy: filters.sortBy,
+		sortOrder: filters.sortOrder,
+		search: filters.search || undefined,
+	});
+	const approveReview = useApproveReview();
 	const deleteReview = useDeleteReview();
 
 	const handleFilterChange = (key: string, value: string) => {
@@ -61,8 +68,8 @@ export default function ReviewsPage() {
 	};
 
 	const handleApproveReview = (reviewId: string, isApproved: boolean) => {
-		updateReview.mutate({
-			reviewId,
+		approveReview.mutate({
+			id: reviewId,
 			data: { isApproved }
 		});
 	};
@@ -71,10 +78,10 @@ export default function ReviewsPage() {
 		deleteReview.mutate(reviewId);
 	};
 
-	const totalReviews = reviewStats?.totalReviews || 0;
-	const averageRating = reviewStats?.averageRating || 0;
-	const pendingReviews = reviewStats?.pendingReviews || 0;
-	const approvedReviews = reviewStats?.approvedReviews || 0;
+	const totalReviews = reviewsData?.data?.total || 0;
+	const averageRating = (reviewsData?.data?.reviews?.reduce((sum: number, review: Review) => sum + review.rating, 0) || 0) / (reviewsData?.data?.reviews?.length || 1);
+	const pendingReviews = reviewsData?.data?.reviews?.filter((review: Review) => !review.isApproved).length || 0;
+	const approvedReviews = reviewsData?.data?.reviews?.filter((review: Review) => review.isApproved).length || 0;
 
 	return (
 		<div className="max-w-7xl mx-auto py-8 px-4 sm:px-6 lg:px-8">
@@ -167,7 +174,7 @@ export default function ReviewsPage() {
 								<SelectValue placeholder="Điểm đánh giá" />
 							</SelectTrigger>
 							<SelectContent>
-								<SelectItem value="">Tất cả</SelectItem>
+								<SelectItem value="all">Tất cả</SelectItem>
 								<SelectItem value="5">5 sao</SelectItem>
 								<SelectItem value="4">4 sao</SelectItem>
 								<SelectItem value="3">3 sao</SelectItem>
@@ -180,7 +187,7 @@ export default function ReviewsPage() {
 								<SelectValue placeholder="Trạng thái" />
 							</SelectTrigger>
 							<SelectContent>
-								<SelectItem value="">Tất cả</SelectItem>
+								<SelectItem value="all">Tất cả</SelectItem>
 								<SelectItem value="true">Đã duyệt</SelectItem>
 								<SelectItem value="false">Chờ duyệt</SelectItem>
 							</SelectContent>
@@ -211,7 +218,7 @@ export default function ReviewsPage() {
 						<div className="text-center py-8">
 							<div className="text-gray-500">Đang tải dữ liệu...</div>
 						</div>
-					) : reviewsData?.reviews?.length > 0 ? (
+					      ) : (reviewsData?.data?.reviews?.length || 0) > 0 ? (
 						<div className="rounded-md border">
 							<Table>
 								<TableHeader>
@@ -226,35 +233,35 @@ export default function ReviewsPage() {
 									</TableRow>
 								</TableHeader>
 								<TableBody>
-									{reviewsData.reviews.map((review) => (
+												      {reviewsData?.data?.reviews?.map((review: Review) => (
 										<TableRow key={review._id}>
 											<TableCell>
 												<div className="flex items-center gap-3">
-													{review.productId.images?.[0] && (
+													{review.product?.images?.[0] && (
 														<img 
-															src={review.productId.images[0]} 
-															alt={review.productId.name}
+															src={review.product.images[0]} 
+															alt={review.product.productName}
 															className="w-12 h-12 object-cover rounded"
 														/>
 													)}
 													<div>
-														<div className="font-medium">{review.productId.name}</div>
+														<div className="font-medium">{review.product?.productName || 'N/A'}</div>
 														<div className="text-sm text-gray-500">
-															{review.orderId.orderCode}
+															{review.orderId}
 														</div>
 													</div>
 												</div>
 											</TableCell>
 											<TableCell>
 												<div>
-													<div className="font-medium">{review.customerId.fullName}</div>
-													<div className="text-sm text-gray-500">{review.customerId.email}</div>
+													<div className="font-medium">{review.customer?.fullName || 'N/A'}</div>
+													<div className="text-sm text-gray-500">{review.customer?.email || 'N/A'}</div>
 												</div>
 											</TableCell>
 											<TableCell>
 												<div className="flex items-center gap-2">
 													<span className="text-yellow-500 text-lg">
-														{reviewHelpers.getRatingStars(review.rating)}
+														{'★'.repeat(review.rating) + '☆'.repeat(5 - review.rating)}
 													</span>
 													<span className="text-sm text-gray-600">
 														({review.rating}/5)
@@ -271,12 +278,12 @@ export default function ReviewsPage() {
 											</TableCell>
 											<TableCell>
 												<Badge variant={review.isApproved ? "default" : "secondary"}>
-													{reviewHelpers.getStatusText(review.isApproved)}
+													{review.isApproved ? 'Đã duyệt' : 'Chờ duyệt'}
 												</Badge>
 											</TableCell>
 											<TableCell>
 												<div className="text-sm">
-													{reviewHelpers.formatDate(review.reviewDate)}
+													{new Date(review.reviewDate).toLocaleDateString('vi-VN')}
 												</div>
 											</TableCell>
 											<TableCell className="text-right">
@@ -289,18 +296,18 @@ export default function ReviewsPage() {
 															variant="outline" 
 															size="sm"
 															onClick={() => handleApproveReview(review._id, true)}
-															disabled={updateReview.isPending}
+															disabled={approveReview.isPending}
 														>
-															<CheckCircle className="h-4 w-4" />
+														<CheckCircle className="h-4 w-4" />
 														</Button>
 													) : (
 														<Button 
 															variant="outline" 
 															size="sm"
 															onClick={() => handleApproveReview(review._id, false)}
-															disabled={updateReview.isPending}
+															disabled={approveReview.isPending}
 														>
-															<XCircle className="h-4 w-4" />
+														<XCircle className="h-4 w-4" />
 														</Button>
 													)}
 													<AlertDialog>

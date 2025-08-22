@@ -54,4 +54,14 @@ export const customersApi = {
 		const response = await axiosInstance.patch(`/customers/${id}/unlock`);
 		return response.data;
 	},
+
+	lockCustomerComment: async (id: string): Promise<BaseResponse<Customer>> => {
+		const response = await axiosInstance.patch(`/customers/${id}/comment-lock`);
+		return response.data;
+	},
+
+	unlockCustomerComment: async (id: string): Promise<BaseResponse<Customer>> => {
+		const response = await axiosInstance.patch(`/customers/${id}/comment-unlock`);
+		return response.data;
+	},
 };

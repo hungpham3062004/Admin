@@ -2,7 +2,7 @@ import {
 	type OrderFilters,
 	type UpdateOrderStatusDto,
 	ordersApi,
-	OrderTimeSeriesPoint,
+	  type OrderTimeSeriesPoint,
 } from '@/apis/orders.api';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 

@@ -62,14 +62,6 @@ export default function CustomerDetailPage() {
 					<ArrowLeftIcon className="w-4 h-4 mr-2" /> Quay lại
 				</Button>
 				<div className="flex gap-2">
-					<Button
-						onClick={() => navigate(`/customers/edit/${customer._id}`)}
-						className="justify-start"
-						variant="outline"
-					>
-						<PencilIcon className="w-4 h-4 mr-2" />
-						Chỉnh sửa thông tin
-					</Button>
 					<Button variant="outline" onClick={handleToggleLock} disabled={processing || isLocking || isUnlocking}>
 						{(customer as any).isLocked ? (
 							<>
@@ -116,18 +108,6 @@ export default function CustomerDetailPage() {
 								</label>
 								<div className="text-gray-900">{customer.phone}</div>
 							</div>
-
-							<div>
-								<label className="block text-sm font-medium text-gray-700 mb-1">
-									Trạng thái
-								</label>
-								<Badge
-									variant="secondary"
-									className="bg-green-100 text-green-800"
-								>
-									Hoạt động
-								</Badge>
-							</div>
 						</div>
 
 						<div>
@@ -141,12 +121,7 @@ export default function CustomerDetailPage() {
 					</div>
 				</div>
 				<div className="space-y-6">
-					<div className="bg-white rounded-lg shadow p-6">
-						<h3 className="text-lg font-medium text-gray-900 mb-4">Trạng thái</h3>
-						<Badge variant={(customer as any).isLocked ? 'destructive' : 'default'}>
-							{(customer as any).isLocked ? 'Đã khóa' : 'Hoạt động'}
-						</Badge>
-					</div>
+					{/* Removed sidebar status card per request */}
 					{/* System Information */}
 					<div className="bg-white rounded-lg shadow p-6">
 						<h3 className="text-lg font-medium text-gray-900 mb-4">

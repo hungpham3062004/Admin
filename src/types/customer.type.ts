@@ -6,6 +6,8 @@ export interface Customer {
 	address: string;
 	createdAt: string;
 	updatedAt: string;
+	isLocked?: boolean;
+	isCommentLocked?: boolean;
 }
 
 export interface CreateCustomerRequest {

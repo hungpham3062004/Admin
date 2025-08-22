@@ -1,4 +1,4 @@
-import { EyeIcon, LockIcon, PencilIcon, UnlockIcon } from 'lucide-react';
+import { EyeIcon, LockIcon, UnlockIcon } from 'lucide-react';
 import {
 	Table,
 	TableBody,
@@ -9,6 +9,7 @@ import {
 } from '@/components/ui/table';
 
 import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
 import type { Customer } from '@/types/customer.type';
 import { useNavigate } from 'react-router-dom';
 import { useState } from 'react';
@@ -32,7 +33,7 @@ export const TableCustomer = ({ customers }: TableCustomerProps) => {
 		navigate(`/customers/edit/${customerId}`);
 	};
 
-	const handleToggleLock = (customer: Customer) => {
+	const handleToggleAccountLock = (customer: Customer) => {
 		setProcessingId(customer._id);
 		if ((customer as any).isLocked) {
 			unlockCustomer(customer._id, { onSettled: () => setProcessingId(null) });
@@ -52,6 +53,7 @@ export const TableCustomer = ({ customers }: TableCustomerProps) => {
 						<TableHead>SĐT</TableHead>
 						<TableHead>Địa chỉ</TableHead>
 						<TableHead>Ngày tạo</TableHead>
+						<TableHead>Trạng thái</TableHead>
 						<TableHead className="text-right">Thao tác</TableHead>
 					</TableRow>
 				</TableHeader>
@@ -66,12 +68,24 @@ export const TableCustomer = ({ customers }: TableCustomerProps) => {
 							<TableCell>
 								{new Date(customer.createdAt).toLocaleDateString('vi-VN')}
 							</TableCell>
+							<TableCell>
+								<div className="flex items-center gap-2">
+									<Badge variant={(customer as any).isLocked ? 'destructive' : 'default'}>
+										TK: {(customer as any).isLocked ? 'Đã khóa' : 'Hoạt động'}
+									</Badge>
+									{(customer as any).isCommentLocked && (
+										<Badge variant={'secondary'}>
+											BL: Đã khóa
+										</Badge>
+									)}
+								</div>
+							</TableCell>
 							<TableCell className="text-right">
 								<div className="flex items-center justify-end gap-2">
 									<Button
 										variant="outline"
 										size="sm"
-										onClick={() => handleViewDetail(customer._id)}
+										onClick={() => navigate(`/customers/detail/${customer._id}`)}
 										className="text-blue-600 hover:text-blue-700 hover:bg-blue-50"
 									>
 										<EyeIcon className="w-4 h-4" />
@@ -79,14 +93,8 @@ export const TableCustomer = ({ customers }: TableCustomerProps) => {
 									<Button
 										variant="outline"
 										size="sm"
-										onClick={() => handleEditCustomer(customer._id)}
-									>
-										<PencilIcon className="w-4 h-4" />
-									</Button>
-									<Button
-										variant="outline"
-										size="sm"
-										onClick={() => handleToggleLock(customer)}
+										onClick={() => handleToggleAccountLock(customer)}
+										title={(customer as any).isLocked ? 'Mở khóa tài khoản' : 'Khóa tài khoản'}
 										className={(customer as any).isLocked ? 'text-green-600 hover:text-green-700 hover:bg-green-50' : 'text-yellow-600 hover:text-yellow-700 hover:bg-yellow-50'}
 										disabled={(isLocking || isUnlocking) && processingId === customer._id}
 									>

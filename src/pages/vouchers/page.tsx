@@ -73,18 +73,18 @@ const VouchersPage: React.FC = () => {
 	}, [refetch]);
 
 	// Event handlers
-	const handleFiltersChange = (newFilters: VoucherFilters) => {
-		setFilters(newFilters);
-	};
+	// const handleFiltersChange = (newFilters: VoucherFilters) => {
+	// 	setFilters(newFilters);
+	// };
 
-	const handleResetFilters = () => {
-		setFilters({
-			page: 1,
-			limit: 10,
-			sortBy: 'createdAt',
-			sortOrder: 'desc',
-		});
-	};
+	// const handleResetFilters = () => {
+	// 	setFilters({
+	// 		page: 1,
+	// 		limit: 10,
+	// 		sortBy: 'createdAt',
+	// 		sortOrder: 'desc',
+	// 	});
+	// };
 
 	const handleRefresh = () => {
 		refetch();

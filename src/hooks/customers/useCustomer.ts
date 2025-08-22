@@ -132,3 +132,35 @@ export const useUnlockCustomer = () => {
 		},
 	});
 };
+
+export const useLockCustomerComment = () => {
+	const queryClient = useQueryClient();
+
+	return useMutation({
+		mutationFn: (id: string) => customersApi.lockCustomerComment(id),
+		onSuccess: () => {
+			queryClient.invalidateQueries({ queryKey: [customersApi.getCustomers.name] });
+			toast.success('Đã khóa bình luận của khách hàng');
+		},
+		onError: (error: any) => {
+			const message = error?.response?.data?.message || 'Khóa bình luận thất bại';
+			toast.error(message);
+		},
+	});
+};
+
+export const useUnlockCustomerComment = () => {
+	const queryClient = useQueryClient();
+
+	return useMutation({
+		mutationFn: (id: string) => customersApi.unlockCustomerComment(id),
+		onSuccess: () => {
+			queryClient.invalidateQueries({ queryKey: [customersApi.getCustomers.name] });
+			toast.success('Đã mở khóa bình luận của khách hàng');
+		},
+		onError: (error: any) => {
+			const message = error?.response?.data?.message || 'Mở khóa bình luận thất bại';
+			toast.error(message);
+		},
+	});
+};
