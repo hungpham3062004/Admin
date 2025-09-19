@@ -23,6 +23,8 @@ import {
 	AlertDialogTitle,
 	AlertDialogTrigger,
 } from '@/components/ui/alert-dialog';
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Textarea } from '@/components/ui/textarea';
 import { useReviews, useApproveReview, useDeleteReview } from '@/hooks/useReviews';
 import type { Review } from '@/apis/reviews.api';
 import { 
@@ -59,6 +61,11 @@ export default function ReviewsPage() {
 	const approveReview = useApproveReview();
 	const deleteReview = useDeleteReview();
 
+	const [responseDialogOpen, setResponseDialogOpen] = useState(false);
+	const [responseText, setResponseText] = useState('');
+	const [pendingReviewId, setPendingReviewId] = useState<string | null>(null);
+	const [pendingApproveFlag, setPendingApproveFlag] = useState<boolean>(true);
+
 	const handleFilterChange = (key: string, value: string) => {
 		setFilters(prev => ({
 			...prev,
@@ -68,10 +75,24 @@ export default function ReviewsPage() {
 	};
 
 	const handleApproveReview = (reviewId: string, isApproved: boolean) => {
-		approveReview.mutate({
-			id: reviewId,
-			data: { isApproved }
-		});
+		setPendingReviewId(reviewId);
+		setPendingApproveFlag(isApproved);
+		setResponseText('');
+		setResponseDialogOpen(true);
+	};
+
+	const submitApprovalWithResponse = () => {
+		if (!pendingReviewId) return;
+		approveReview.mutate(
+			{ id: pendingReviewId, data: { isApproved: pendingApproveFlag, response: responseText?.trim() || undefined } },
+			{
+				onSettled: () => {
+					setResponseDialogOpen(false);
+					setResponseText('');
+					setPendingReviewId(null);
+				}
+			}
+		);
 	};
 
 	const handleDeleteReview = (reviewId: string) => {
@@ -233,7 +254,7 @@ export default function ReviewsPage() {
 									</TableRow>
 								</TableHeader>
 								<TableBody>
-												      {reviewsData?.data?.reviews?.map((review: Review) => (
+									{reviewsData?.data?.reviews?.map((review: Review) => (
 										<TableRow key={review._id}>
 											<TableCell>
 												<div className="flex items-center gap-3">
@@ -298,7 +319,7 @@ export default function ReviewsPage() {
 															onClick={() => handleApproveReview(review._id, true)}
 															disabled={approveReview.isPending}
 														>
-														<CheckCircle className="h-4 w-4" />
+															<CheckCircle className="h-4 w-4" />
 														</Button>
 													) : (
 														<Button 
@@ -307,7 +328,7 @@ export default function ReviewsPage() {
 															onClick={() => handleApproveReview(review._id, false)}
 															disabled={approveReview.isPending}
 														>
-														<XCircle className="h-4 w-4" />
+															<XCircle className="h-4 w-4" />
 														</Button>
 													)}
 													<AlertDialog>
@@ -349,6 +370,32 @@ export default function ReviewsPage() {
 					)}
 				</CardContent>
 			</Card>
+
+			<Dialog open={responseDialogOpen} onOpenChange={setResponseDialogOpen}>
+				<DialogContent>
+					<DialogHeader>
+						<DialogTitle>Gửi phản hồi tới khách hàng</DialogTitle>
+						<DialogDescription>
+							Nội dung phản hồi sẽ được gửi qua email khi bạn xác nhận.
+						</DialogDescription>
+					</DialogHeader>
+					<div className="space-y-2">
+						<label className="text-sm font-medium text-gray-700">Nội dung phản hồi (tuỳ chọn)</label>
+						<Textarea
+							value={responseText}
+							onChange={(e) => setResponseText(e.target.value)}
+							placeholder="Nhập phản hồi của bạn..."
+							rows={5}
+						/>
+					</div>
+					<DialogFooter>
+						<Button variant="outline" onClick={() => setResponseDialogOpen(false)} disabled={approveReview.isPending}>Hủy</Button>
+						<Button onClick={submitApprovalWithResponse} disabled={approveReview.isPending}>
+							{approveReview.isPending ? 'Đang gửi...' : 'Gửi phản hồi & cập nhật'}
+						</Button>
+					</DialogFooter>
+				</DialogContent>
+			</Dialog>
 		</div>
 	);
 }

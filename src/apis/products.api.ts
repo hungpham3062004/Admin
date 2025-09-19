@@ -38,11 +38,6 @@ export const productsApi = {
 		return response.data;
 	},
 
-	deleteProduct: async (id: string): Promise<BaseResponse<null>> => {
-		const response = await axiosInstance.delete(`/products/${id}`);
-		return response.data;
-	},
-
 	lockProduct: async (id: string): Promise<BaseResponse<Product>> => {
 		const response = await axiosInstance.patch(`/products/${id}/hide`);
 		return response.data;

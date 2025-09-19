@@ -12,9 +12,33 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { useAuth } from '@/contexts/AuthContext';
+import React from 'react';
+import { useEffect, useState } from 'react';
+import { fetchContactsUnreadCount, fetchRecentContacts, markContactRead } from '@/apis/contacts.api';
+import { useNavigate } from 'react-router-dom';
 
 const Header = () => {
 	const { admin, logout } = useAuth();
+    const navigate = useNavigate();
+    const [unread, setUnread] = useState(0);
+    const [recent, setRecent] = useState<any[]>([]);
+
+    const loadNotifications = async () => {
+        try {
+            const [cntRes, recentRes] = await Promise.all([
+                fetchContactsUnreadCount(),
+                fetchRecentContacts(5),
+            ]);
+            setUnread(cntRes.count || 0);
+            setRecent(recentRes || []);
+        } catch (e) {}
+    };
+
+    useEffect(() => {
+        loadNotifications();
+        const t = setInterval(loadNotifications, 15000);
+        return () => clearInterval(t);
+    }, []);
 
 	const handleLogout = () => {
 		logout();
@@ -51,12 +75,48 @@ const Header = () => {
 				</div>
 
 				{/* notification */}
-				<Button variant="ghost" size="sm" className="relative">
-					<Bell className="w-5 h-5" />
-					<span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full w-4 h-4 flex items-center justify-center">
-						3
-					</span>
-				</Button>
+				<DropdownMenu>
+					<DropdownMenuTrigger asChild>
+						<Button variant="ghost" size="sm" className="relative">
+							<Bell className="w-5 h-5" />
+							{unread > 0 && (
+								<span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full min-w-4 h-4 px-1 flex items-center justify-center">
+									{unread}
+								</span>
+							)}
+						</Button>
+					</DropdownMenuTrigger>
+					<DropdownMenuContent align="end" className="w-80">
+						<DropdownMenuLabel>Thông báo liên hệ</DropdownMenuLabel>
+						<DropdownMenuSeparator />
+						{recent.length === 0 ? (
+							<div className="p-3 text-sm text-gray-500">Không có thông báo</div>
+						) : (
+							recent.map((c) => (
+								<DropdownMenuItem
+									key={c._id}
+									onClick={async () => {
+										try {
+											await markContactRead(c._id);
+											setUnread((u) => Math.max(0, u - (c.isRead ? 0 : 1)));
+											navigate('/manager/contacts');
+										} finally {
+										}
+									}}
+									className="cursor-pointer flex-col items-start"
+								>
+									<div className="w-full flex justify-between gap-2">
+										<span className="text-sm font-medium">{c.name}</span>
+										<span className="text-[10px] text-gray-500">{new Date(c.createdAt).toLocaleString('vi-VN')}</span>
+									</div>
+									<div className="text-xs text-gray-600 truncate w-full">{c.product} — {c.note}</div>
+								</DropdownMenuItem>
+							))
+						)}
+						<DropdownMenuSeparator />
+						<DropdownMenuItem onClick={() => navigate('/manager/contacts')} className="cursor-pointer">Xem tất cả</DropdownMenuItem>
+					</DropdownMenuContent>
+				</DropdownMenu>
 
 				{/* admin dropdown */}
 				<DropdownMenu>

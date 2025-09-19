@@ -9,6 +9,8 @@ export interface Product {
 	productName: string;
 	description: string;
 	price: number;
+	discountedPrice?: number;
+	discountPercentage?: number;
 	weight: number;
 	material: string;
 	stockQuantity: number;

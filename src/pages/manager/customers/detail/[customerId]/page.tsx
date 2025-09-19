@@ -1,5 +1,15 @@
 import { ArrowLeftIcon, LockIcon, PencilIcon, UnlockIcon } from 'lucide-react';
 import { useCustomerDetail, useLockCustomer, useUnlockCustomer } from '@/hooks/customers/useCustomer';
+import {
+	AlertDialog,
+	AlertDialogAction,
+	AlertDialogCancel,
+	AlertDialogContent,
+	AlertDialogDescription,
+	AlertDialogFooter,
+	AlertDialogHeader,
+	AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -12,15 +22,35 @@ export default function CustomerDetailPage() {
 	const { mutate: lockCustomer, isPending: isLocking } = useLockCustomer();
 	const { mutate: unlockCustomer, isPending: isUnlocking } = useUnlockCustomer();
 	const [processing, setProcessing] = useState(false);
+	const [showConfirmDialog, setShowConfirmDialog] = useState(false);
 
 	const handleToggleLock = () => {
 		if (!customer) return;
+		setShowConfirmDialog(true);
+	};
+
+	const confirmToggleLock = () => {
+		if (!customer) return;
 		setProcessing(true);
 		if ((customer as any).isLocked) {
-			unlockCustomer(customer._id, { onSettled: () => setProcessing(false) });
+			unlockCustomer(customer._id, { 
+				onSettled: () => {
+					setProcessing(false);
+					setShowConfirmDialog(false);
+				}
+			});
 		} else {
-			lockCustomer(customer._id, { onSettled: () => setProcessing(false) });
+			lockCustomer(customer._id, { 
+				onSettled: () => {
+					setProcessing(false);
+					setShowConfirmDialog(false);
+				}
+			});
 		}
+	};
+
+	const cancelToggleLock = () => {
+		setShowConfirmDialog(false);
 	};
 
 	if (isLoading) {
@@ -158,6 +188,26 @@ export default function CustomerDetailPage() {
 					</div>
 				</div>
 			</div>
+
+			<AlertDialog open={showConfirmDialog} onOpenChange={setShowConfirmDialog}>
+				<AlertDialogContent>
+					<AlertDialogHeader>
+						<AlertDialogTitle>
+							{(customer as any).isLocked ? 'Mở khóa tài khoản' : 'Khóa tài khoản'}
+						</AlertDialogTitle>
+						<AlertDialogDescription>
+							Bạn có chắc chắn muốn {(customer as any).isLocked ? 'mở khóa' : 'khóa'} tài khoản của khách hàng này không?
+							Thao tác này sẽ ảnh hưởng đến việc truy cập vào hệ thống của khách hàng.
+						</AlertDialogDescription>
+					</AlertDialogHeader>
+					<AlertDialogFooter>
+						<AlertDialogCancel onClick={cancelToggleLock}>Hủy</AlertDialogCancel>
+						<AlertDialogAction onClick={confirmToggleLock} disabled={processing || isLocking || isUnlocking}>
+							{processing ? 'Đang xử lý...' : (customer as any).isLocked ? 'Mở khóa' : 'Khóa'}
+						</AlertDialogAction>
+					</AlertDialogFooter>
+				</AlertDialogContent>
+			</AlertDialog>
 		</div>
 	);
 }

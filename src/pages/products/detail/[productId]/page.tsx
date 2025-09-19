@@ -1,15 +1,27 @@
 import { useLockProduct, useProductDetail, useUnlockProduct } from '@/hooks/products/useProduct';
 import { ArrowLeft, Loader, PencilIcon, LockIcon, UnlockIcon } from 'lucide-react';
+import {
+	AlertDialog,
+	AlertDialogAction,
+	AlertDialogCancel,
+	AlertDialogContent,
+	AlertDialogDescription,
+	AlertDialogFooter,
+	AlertDialogHeader,
+	AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 
 import { Button } from '@/components/ui/button';
 import { formatPrice } from '@/lib/format-currency';
 import { useNavigate } from 'react-router-dom';
+import { useState } from 'react';
 
 const ProductDetailPage = () => {
 	const navigate = useNavigate();
 	const { product, isLoading } = useProductDetail();
 	const { mutate: lockProduct, isPending: isLocking } = useLockProduct();
 	const { mutate: unlockProduct, isPending: isUnlocking } = useUnlockProduct();
+	const [showConfirmDialog, setShowConfirmDialog] = useState(false);
 
 	const handleEdit = () => {
 		navigate(`/products/edit/${product?.id}`);
@@ -17,8 +29,18 @@ const ProductDetailPage = () => {
 
 	const handleToggleHidden = () => {
 		if (!product) return;
+		setShowConfirmDialog(true);
+	};
+
+	const confirmToggleHidden = () => {
+		if (!product) return;
 		const action = product.isHidden ? unlockProduct : lockProduct;
 		action(product.id);
+		setShowConfirmDialog(false);
+	};
+
+	const cancelToggleHidden = () => {
+		setShowConfirmDialog(false);
 	};
 
 	if (isLoading) {
@@ -150,7 +172,14 @@ const ProductDetailPage = () => {
 										</span>
 									</div>
 									<div className="text-3xl font-bold text-gray-900 mb-2">
-										{formatPrice(product.price)}
+										{product.discountedPrice && product.discountedPrice > 0 && product.discountedPrice < product.price ? (
+											<div className="flex items-center gap-3">
+												<span className="text-red-600">{formatPrice(product.discountedPrice)}</span>
+												<span className="text-xl text-gray-400 line-through">{formatPrice(product.price)}</span>
+											</div>
+										) : (
+											<span>{formatPrice(product.price)}</span>
+										)}
 									</div>
 								</div>
 
@@ -252,6 +281,23 @@ const ProductDetailPage = () => {
 					</div>
 				</div>
 			</div>
+
+			<AlertDialog open={showConfirmDialog} onOpenChange={setShowConfirmDialog}>
+				<AlertDialogContent>
+					<AlertDialogHeader>
+						<AlertDialogTitle>
+							{product.isHidden ? 'Ẩn sản phẩm' : 'Hiển thị lại sản phẩm'}
+						</AlertDialogTitle>
+						<AlertDialogDescription>
+							Bạn có chắc chắn muốn {product.isHidden ? 'Ẩn sản phẩm' : 'Hiển thị lại sản phẩm'} sản phẩm "{product.productName}"?
+						</AlertDialogDescription>
+					</AlertDialogHeader>
+					<AlertDialogFooter>
+						<AlertDialogCancel onClick={cancelToggleHidden}>Hủy</AlertDialogCancel>
+						<AlertDialogAction onClick={confirmToggleHidden}>Xác nhận</AlertDialogAction>
+					</AlertDialogFooter>
+				</AlertDialogContent>
+			</AlertDialog>
 		</div>
 	);
 };

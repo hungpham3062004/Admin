@@ -29,7 +29,6 @@ import {
 	DollarSign, 
 	CheckCircle,
 	Truck,
-	CreditCard,
 	XCircle,
 	ShoppingCart
 } from 'lucide-react';
@@ -134,31 +133,7 @@ export default function HomePage() {
 		return null;
 	};
 
-	const getPaymentMethodDisplay = (paymentMethod: string) => {
-		switch (paymentMethod) {
-			case 'payos':
-				return { 
-					text: 'PayOS', 
-					icon: <CreditCard className="h-4 w-4 text-blue-600" />,
-					variant: 'default' as const,
-					className: 'bg-blue-50 text-blue-700 border-blue-200',
-				};
-			case 'cash':
-				return { 
-					text: 'Tiền mặt', 
-					icon: <DollarSign className="h-4 w-4 text-green-600" />,
-					variant: 'secondary' as const,
-					className: 'bg-green-50 text-green-700 border-green-200',
-				};
-			default:
-				return { 
-					text: 'Tiền mặt', 
-					icon: <DollarSign className="h-4 w-4 text-green-600" />,
-					variant: 'secondary' as const,
-					className: 'bg-green-50 text-green-700 border-green-200',
-				};
-		}
-	};
+
 
 	const getStatusIcon = (status: string) => {
 		switch (status) {
@@ -392,25 +367,17 @@ export default function HomePage() {
 										<TableHead className="w-[140px]">Mã đơn</TableHead>
 										<TableHead>Khách hàng</TableHead>
 										<TableHead>Tổng tiền</TableHead>
-										<TableHead>Thanh toán</TableHead>
 										<TableHead>Trạng thái</TableHead>
 										<TableHead>Ngày đặt</TableHead>
 									</TableRow>
 								</TableHeader>
 								<TableBody>
 									{recentOrdersData.orders.map((order) => {
-										const paymentDisplay = getPaymentMethodDisplay(order.paymentMethod || 'cash');
-										
 										return (
 											<TableRow key={order._id}>
 												<TableCell className="font-mono">{order.orderCode}</TableCell>
 												<TableCell>{order.customerId?.fullName || 'N/A'}</TableCell>
 												<TableCell>{orderHelpers.formatCurrency(order.finalAmount)}</TableCell>
-												<TableCell>
-													<Badge variant="outline" className={`flex items-center gap-1 ${paymentDisplay.className}`}>
-														{paymentDisplay.icon} {paymentDisplay.text}
-													</Badge>
-												</TableCell>
 												<TableCell>
 													<Badge variant="secondary" className="flex items-center gap-1">
 														{getStatusIcon(order.status)} {orderHelpers.getStatusText(order.status)}

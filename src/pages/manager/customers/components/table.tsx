@@ -7,6 +7,16 @@ import {
 	TableHeader,
 	TableRow,
 } from '@/components/ui/table';
+import {
+	AlertDialog,
+	AlertDialogAction,
+	AlertDialogCancel,
+	AlertDialogContent,
+	AlertDialogDescription,
+	AlertDialogFooter,
+	AlertDialogHeader,
+	AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -24,6 +34,8 @@ export const TableCustomer = ({ customers }: TableCustomerProps) => {
 	const { mutate: lockCustomer, isPending: isLocking } = useLockCustomer();
 	const { mutate: unlockCustomer, isPending: isUnlocking } = useUnlockCustomer();
 	const [processingId, setProcessingId] = useState<string | null>(null);
+	const [showLockDialog, setShowLockDialog] = useState(false);
+	const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null);
 
 	const handleViewDetail = (customerId: string) => {
 		navigate(`/customers/detail/${customerId}`);
@@ -34,82 +46,141 @@ export const TableCustomer = ({ customers }: TableCustomerProps) => {
 	};
 
 	const handleToggleAccountLock = (customer: Customer) => {
-		setProcessingId(customer._id);
-		if ((customer as any).isLocked) {
-			unlockCustomer(customer._id, { onSettled: () => setProcessingId(null) });
+		setSelectedCustomer(customer);
+		setShowLockDialog(true);
+	};
+
+	const confirmToggleLock = () => {
+		if (!selectedCustomer) return;
+		
+		setProcessingId(selectedCustomer._id);
+		if ((selectedCustomer as any).isLocked) {
+			unlockCustomer(selectedCustomer._id, { 
+				onSettled: () => {
+					setProcessingId(null);
+					setShowLockDialog(false);
+					setSelectedCustomer(null);
+				}
+			});
 		} else {
-			lockCustomer(customer._id, { onSettled: () => setProcessingId(null) });
+			lockCustomer(selectedCustomer._id, { 
+				onSettled: () => {
+					setProcessingId(null);
+					setShowLockDialog(false);
+					setSelectedCustomer(null);
+				}
+			});
 		}
 	};
 
+	const cancelToggleLock = () => {
+		setShowLockDialog(false);
+		setSelectedCustomer(null);
+	};
+
 	return (
-		<div className="overflow-x-auto">
-			<Table>
-				<TableHeader>
-					<TableRow>
-						<TableHead className="w-[100px]">STT</TableHead>
-						<TableHead>Họ tên</TableHead>
-						<TableHead>Email</TableHead>
-						<TableHead>SĐT</TableHead>
-						<TableHead>Địa chỉ</TableHead>
-						<TableHead>Ngày tạo</TableHead>
-						<TableHead>Trạng thái</TableHead>
-						<TableHead className="text-right">Thao tác</TableHead>
-					</TableRow>
-				</TableHeader>
-				<TableBody>
-					{customers.map((customer: Customer, index: number) => (
-						<TableRow key={customer._id}>
-							<TableCell className="font-mono text-xs">#{index + 1}</TableCell>
-							<TableCell>{customer.fullName}</TableCell>
-							<TableCell>{customer.email}</TableCell>
-							<TableCell>{customer.phone}</TableCell>
-							<TableCell>{customer.address}</TableCell>
-							<TableCell>
-								{new Date(customer.createdAt).toLocaleDateString('vi-VN')}
-							</TableCell>
-							<TableCell>
-								<div className="flex items-center gap-2">
-									<Badge variant={(customer as any).isLocked ? 'destructive' : 'default'}>
-										TK: {(customer as any).isLocked ? 'Đã khóa' : 'Hoạt động'}
-									</Badge>
-									{(customer as any).isCommentLocked && (
-										<Badge variant={'secondary'}>
-											BL: Đã khóa
-										</Badge>
-									)}
-								</div>
-							</TableCell>
-							<TableCell className="text-right">
-								<div className="flex items-center justify-end gap-2">
-									<Button
-										variant="outline"
-										size="sm"
-										onClick={() => navigate(`/customers/detail/${customer._id}`)}
-										className="text-blue-600 hover:text-blue-700 hover:bg-blue-50"
-									>
-										<EyeIcon className="w-4 h-4" />
-									</Button>
-									<Button
-										variant="outline"
-										size="sm"
-										onClick={() => handleToggleAccountLock(customer)}
-										title={(customer as any).isLocked ? 'Mở khóa tài khoản' : 'Khóa tài khoản'}
-										className={(customer as any).isLocked ? 'text-green-600 hover:text-green-700 hover:bg-green-50' : 'text-yellow-600 hover:text-yellow-700 hover:bg-yellow-50'}
-										disabled={(isLocking || isUnlocking) && processingId === customer._id}
-									>
-										{(customer as any).isLocked ? (
-											<UnlockIcon className="w-4 h-4" />
-										) : (
-											<LockIcon className="w-4 h-4" />
-										)}
-									</Button>
-								</div>
-							</TableCell>
+		<>
+			<div className="overflow-x-auto">
+				<Table>
+					<TableHeader>
+						<TableRow>
+							<TableHead className="w-[100px]">STT</TableHead>
+							<TableHead>Họ tên</TableHead>
+							<TableHead>Email</TableHead>
+							<TableHead>SĐT</TableHead>
+							<TableHead>Địa chỉ</TableHead>
+							<TableHead>Ngày tạo</TableHead>
+							<TableHead>Trạng thái</TableHead>
+							<TableHead className="text-right">Thao tác</TableHead>
 						</TableRow>
-					))}
-				</TableBody>
-			</Table>
-		</div>
+					</TableHeader>
+					<TableBody>
+						{customers.map((customer: Customer, index: number) => (
+							<TableRow key={customer._id}>
+								<TableCell className="font-mono text-xs">#{index + 1}</TableCell>
+								<TableCell>{customer.fullName}</TableCell>
+								<TableCell>{customer.email}</TableCell>
+								<TableCell>{customer.phone}</TableCell>
+								<TableCell>{customer.address}</TableCell>
+								<TableCell>
+									{new Date(customer.createdAt).toLocaleDateString('vi-VN')}
+								</TableCell>
+								<TableCell>
+									<div className="flex items-center gap-2">
+										<Badge variant={(customer as any).isLocked ? 'destructive' : 'default'}>
+											TK: {(customer as any).isLocked ? 'Đã khóa' : 'Hoạt động'}
+										</Badge>
+										{(customer as any).isCommentLocked && (
+											<Badge variant={'secondary'}>
+												BL: Đã khóa
+											</Badge>
+										)}
+									</div>
+								</TableCell>
+								<TableCell className="text-right">
+									<div className="flex items-center justify-end gap-2">
+										<Button
+											variant="outline"
+											size="sm"
+											onClick={() => navigate(`/customers/detail/${customer._id}`)}
+											className="text-blue-600 hover:text-blue-700 hover:bg-blue-50"
+										>
+											<EyeIcon className="w-4 h-4" />
+										</Button>
+										<Button
+											variant="outline"
+											size="sm"
+											onClick={() => handleToggleAccountLock(customer)}
+											title={(customer as any).isLocked ? 'Mở khóa tài khoản' : 'Khóa tài khoản'}
+											className={(customer as any).isLocked ? 'text-green-600 hover:text-green-700 hover:bg-green-50' : 'text-yellow-600 hover:text-yellow-700 hover:bg-yellow-50'}
+											disabled={(isLocking || isUnlocking) && processingId === customer._id}
+										>
+											{(customer as any).isLocked ? (
+												<UnlockIcon className="w-4 h-4" />
+											) : (
+												<LockIcon className="w-4 h-4" />
+											)}
+										</Button>
+									</div>
+								</TableCell>
+							</TableRow>
+						))}
+					</TableBody>
+				</Table>
+			</div>
+
+			{/* Lock/Unlock Confirmation Dialog */}
+			<AlertDialog open={showLockDialog} onOpenChange={setShowLockDialog}>
+				<AlertDialogContent>
+					<AlertDialogHeader>
+						<AlertDialogTitle>
+							Xác nhận {selectedCustomer?.isLocked ? 'mở khóa' : 'khóa'} tài khoản
+						</AlertDialogTitle>
+						<AlertDialogDescription>
+							Bạn có chắc chắn muốn {selectedCustomer?.isLocked ? 'mở khóa' : 'khóa'} tài khoản của khách hàng "{selectedCustomer?.fullName}"?
+							{selectedCustomer?.isLocked 
+								? ' Khách hàng sẽ có thể đăng nhập và sử dụng tài khoản bình thường.' 
+								: ' Khách hàng sẽ không thể đăng nhập vào tài khoản.'
+							}
+						</AlertDialogDescription>
+					</AlertDialogHeader>
+					<AlertDialogFooter>
+						<AlertDialogCancel onClick={cancelToggleLock}>
+							Hủy
+						</AlertDialogCancel>
+						<AlertDialogAction 
+							onClick={confirmToggleLock}
+							disabled={(isLocking || isUnlocking) && processingId === selectedCustomer?._id}
+							className={selectedCustomer?.isLocked ? 'bg-green-600 hover:bg-green-700' : 'bg-yellow-600 hover:bg-yellow-700'}
+						>
+							{(isLocking || isUnlocking) && processingId === selectedCustomer?._id
+								? 'Đang xử lý...'
+								: selectedCustomer?.isLocked ? 'Mở khóa' : 'Khóa'
+							}
+						</AlertDialogAction>
+					</AlertDialogFooter>
+				</AlertDialogContent>
+			</AlertDialog>
+		</>
 	);
 };

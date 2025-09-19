@@ -82,25 +82,6 @@ export const useUpdateProduct = () => {
 	});
 };
 
-export const useDeleteProduct = () => {
-	const queryClient = useQueryClient();
-
-	return useMutation({
-		mutationFn: (id: string) => productsApi.deleteProduct(id),
-		onSuccess: () => {
-			queryClient.invalidateQueries({
-				queryKey: [productsApi.getProducts.name],
-			});
-			toast.success('Xóa sản phẩm thành công!');
-		},
-		onError: (error: any) => {
-			const errorMessage =
-				error?.response?.data?.message || 'Có lỗi xảy ra khi xóa sản phẩm';
-			toast.error(errorMessage);
-		},
-	});
-};
-
 export const useLockProduct = () => {
 	const queryClient = useQueryClient();
 

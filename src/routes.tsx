@@ -22,6 +22,7 @@ import CommentsPage from './pages/comments/page';
 import FavoritesPage from './pages/favorites/page';
 import LoginPage from './pages/login/page';
 import RootLayout from './layouts/root-layout';
+import ContactsManagerPage from './pages/manager/contacts';
 
 import { createBrowserRouter } from 'react-router-dom';
 
@@ -127,6 +128,10 @@ export const router = createBrowserRouter([
 			{
 				path: 'admins/change-password/:adminId',
 				element: <ChangePasswordPage />,
+			},
+			{
+				path: 'manager/contacts',
+				element: <ContactsManagerPage />,
 			},
 			{
 				path: 'orders',

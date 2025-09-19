@@ -83,11 +83,16 @@ export const useToggleCategoryActive = () => {
 
 	return useMutation({
 		mutationFn: (id: string) => categoriesApi.lockCategory(id),
-		onSuccess: () => {
+		onSuccess: (data) => {
 			queryClient.invalidateQueries({
 				queryKey: [categoriesApi.getCategories.name],
 			});
-			toast.success('Đã thay đổi trạng thái danh mục và cập nhật hiển thị sản phẩm');
+			const isActive = data.data.isActive;
+			toast.success(
+				isActive 
+					? 'Đã mở khóa danh mục thành công! Danh mục này sẽ được hiển thị trên trang khách hàng.'
+					: 'Đã khóa danh mục thành công! Danh mục này sẽ bị ẩn khỏi trang khách hàng.'
+			);
 		},
 		onError: (error: any) => {
 			const errorMessage =

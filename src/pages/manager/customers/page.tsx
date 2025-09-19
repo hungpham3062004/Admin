@@ -79,9 +79,6 @@ export default function CustomersPage() {
 							{isFetching && (
 								<div className="text-sm text-blue-600">Đang tải...</div>
 							)}
-							<Button onClick={() => navigate('/customers/create')}>
-								Thêm khách hàng
-							</Button>
 						</div>
 					</div>
 				</div>
